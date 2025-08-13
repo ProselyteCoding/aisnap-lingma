@@ -1,0 +1,91 @@
+import { NextRequest } from 'next/server';
+
+// POST /api/convert
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { input, inputType, outputType, template } = data;
+
+    // 这里将实现实际的转换逻辑
+    // 目前返回模拟数据
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: '转换请求已提交',
+        data: {
+          id: Math.random().toString(36).substring(7),
+          inputType,
+          outputType,
+          status: 'processing',
+          createdAt: new Date().toISOString(),
+        }
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: '转换请求处理失败',
+        error: error instanceof Error ? error.message : '未知错误'
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
+}
+
+// GET /api/convert/:id
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+    
+    // 这里将实现获取转换状态的逻辑
+    // 目前返回模拟数据
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          id,
+          inputType: 'text',
+          outputType: 'docx',
+          status: 'completed',
+          outputFile: `/downloads/${id}.docx`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: '获取转换状态失败',
+        error: error instanceof Error ? error.message : '未知错误'
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
+}
