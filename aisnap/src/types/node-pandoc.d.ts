@@ -1,8 +1,8 @@
 declare module 'node-pandoc' {
-  type Callback = (err: Error | null, result: string) => void;
+  type Callback = (err: Error | null, result: string | boolean) => void;
   
   interface Pandoc {
-    (args: string[], callback: Callback): void;
+    (src: string, args: string, callback: Callback): void;
   }
 
   const pandoc: Pandoc;

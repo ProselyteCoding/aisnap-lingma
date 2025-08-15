@@ -1,8 +1,9 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 
 import { Button, Space, Typography } from "antd";
-import { UploadOutlined, FileTextOutlined, PictureOutlined } from "@ant-design/icons";
+import { FileTextOutlined } from "@ant-design/icons";
 
 const { Title, Paragraph } = Typography;
 
@@ -25,15 +26,11 @@ export default function Home() {
           flexWrap: "wrap",
           marginTop: "40px"
         }}>
-          <Button type="primary" size="large" icon={<FileTextOutlined />}>
-            文本输入转换
-          </Button>
-          <Button type="primary" size="large" icon={<UploadOutlined />}>
-            图片上传转换
-          </Button>
-          <Button size="large" icon={<PictureOutlined />}>
-            样式模板
-          </Button>
+          <Link href="/convert">
+            <Button type="primary" size="large" icon={<FileTextOutlined />}>
+              开始转换
+            </Button>
+          </Link>
         </div>
         
         <div style={{ 

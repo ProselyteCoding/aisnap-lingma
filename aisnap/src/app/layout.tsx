@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import "./globals.scss";
-import { ConfigProvider } from "antd";
-import theme from "./theme";
+import AntDesignProviders from "./providers";
 
 export const metadata: Metadata = {
   title: "AISnap - 智能文档格式转换平台",
@@ -18,9 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
-        <ConfigProvider theme={theme}>
+        <AntDesignProviders>
           {children}
-        </ConfigProvider>
+        </AntDesignProviders>
       </body>
     </html>
   );
