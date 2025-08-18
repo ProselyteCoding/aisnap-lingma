@@ -8,3 +8,15 @@ body {
     'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
     'Noto Color Emoji';
 }
+
+/* 头像上传器样式 */
+.avatar-uploader .ant-upload.ant-upload-select {
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+}
+
+.avatar-uploader .ant-upload.ant-upload-select:hover {
+  border-color: #1890ff !important;
+}

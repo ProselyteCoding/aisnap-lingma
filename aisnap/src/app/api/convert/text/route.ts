@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { processConversion } from '@/lib/conversion';
 
 // 定义输出类型
@@ -8,6 +10,18 @@ export type PandocOutputFormat = 'docx' | 'html' | 'latex' | 'pdf' | 'plain';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('文本转换API被调用');
+    
+    // 安全地获取用户会话，不阻断转换流程
+    let userId = null;
+    try {
+      const session = await getServerSession(authOptions);
+      userId = session?.user?.id || null;
+      console.log('用户状态:', { hasSession: !!session, userId });
+    } catch (authError: unknown) {
+      console.warn('获取用户会话失败，继续以游客模式执行:', authError instanceof Error ? authError.message : '未知错误');
+    }
+    
     // 文本转换API只处理基础的文档格式转换
     // template、prompt、imageSettings属于图片转换功能，不在此API处理
     const { input, inputType, outputType, outputFormat, imageSettings } = await request.json();
@@ -74,7 +88,8 @@ export async function POST(request: NextRequest) {
       inputType: inputType,
       outputType: outputType,
       outputFormat: outputFormat,
-      imageSettings: imageSettings
+      imageSettings: imageSettings,
+      userId: userId, // 传递用户ID用于历史记录保存
     });
     
     if (result.success) {

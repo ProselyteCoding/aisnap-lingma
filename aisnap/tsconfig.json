@@ -32,7 +32,8 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ]
+    ],
+    "exactOptionalPropertyTypes": false
   },
   "include": [
     "next-env.d.ts",

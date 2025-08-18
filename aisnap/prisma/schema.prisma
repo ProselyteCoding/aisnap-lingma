@@ -15,24 +15,30 @@ datasource db {
 model User {
   id            String     @id @default(uuid())
   email         String     @unique
-  name          String?
+  username      String     @unique
+  nickname      String
   avatar        String?
+  background    String?    // 用户背景图片URL
+  password      String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  conversions   Conversion[]
+  conversions   History[]
 }
 
-// 转换记录模型
-model Conversion {
+
+// 历史记录模型
+model History {
   id            String     @id @default(uuid())
-  userId        String?
-  inputType     String     // 'text' | 'image'
-  outputType    String     // 'docx' | 'html' | 'pdf' | 'latex' | 'image' | 'text'
+  userId        String
+  inputType     String     // 'markdown' | 'image'
+  outputType    String     // 'docx' | 'html' | 'pdf' | 'latex' | 'image' | 'plain'
+  input         String?    // 输入内容（如果是文本）
+  output        String?    // 输出内容（如果是文本）
   inputFile     String?    // 输入文件路径
   outputFile    String?    // 输出文件路径
   template      String?    // 模板配置
-  status        String     @default("pending") // 'pending' | 'processing' | 'completed' | 'failed'
+  status        String     @default("completed") // 'pending' | 'processing' | 'completed' | 'failed'
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  user          User?      @relation(fields: [userId], references: [id])
+  user          User       @relation(fields: [userId], references: [id])
 }

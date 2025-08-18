@@ -59,7 +59,7 @@ export default function ImageConversion() {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('format', outputFormat);
+      formData.append('outputType', outputFormat);
 
       const response = await fetch('/api/convert/image', {
         method: 'POST',

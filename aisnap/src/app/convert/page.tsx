@@ -34,6 +34,7 @@ import {
   RobotOutlined
 } from '@ant-design/icons';
 import type { UploadProps, UploadFile, TabsProps } from 'antd';
+import UserNavbar from '../components/UserNavbar';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -62,6 +63,7 @@ export default function ConvertPage() {
   const [convertedFile, setConvertedFile] = useState<string | null>(null);
   const [convertedText, setConvertedText] = useState<string | null>(null);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [prompt, setPrompt] = useState(''); // 用户输入的提示词
   const previewRef = useRef<HTMLDivElement>(null);
   
@@ -76,6 +78,49 @@ export default function ConvertPage() {
     padding: 20,
     contentFormat: 'markdown' // 默认为markdown（输出2）
   });
+
+  // 生成并上传图片到服务器
+  const generateAndUploadImage = async (expectedPath: string) => {
+    if (!previewRef.current) {
+      console.error('预览元素不存在');
+      return;
+    }
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(previewRef.current, {
+        backgroundColor: imageSettings.backgroundColor,
+        scale: 2, // 提高图片质量
+        useCORS: true,
+        logging: false
+      });
+      
+      // 将canvas转换为blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, 'image/png');
+      });
+
+      // 上传图片到服务器
+      const formData = new FormData();
+      formData.append('image', blob, expectedPath.split('/').pop() || 'output.png');
+      formData.append('expectedPath', expectedPath);
+
+      const response = await fetch('/api/upload-generated-image', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        console.log('图片已成功上传到服务器:', expectedPath);
+      } else {
+        console.error('图片上传失败');
+      }
+    } catch (error) {
+      console.error('生成或上传图片时出错:', error);
+    }
+  };
 
   // 更新图片设置
   const updateImageSettings = <K extends keyof ImageSettings>(field: K, value: ImageSettings[K]) => {
@@ -246,7 +291,7 @@ export default function ConvertPage() {
     try {
       const formData = new FormData();
       formData.append('image', fileValue);
-      formData.append('format', outputTypeValue); // 使用用户选择的输出1格式
+      formData.append('outputType', outputTypeValue); // 使用用户选择的输出1格式
       formData.append('outputFormat', imageSettings.contentFormat); // 传递输出2格式
       formData.append('prompt', prompt); // 添加提示词
       formData.append('imageSettings', JSON.stringify(imageSettings)); // 传递图片设置
@@ -267,6 +312,13 @@ export default function ConvertPage() {
           // 对于图片输出，设置预览内容
           if (outputTypeValue === 'image') {
             setPreviewContent(result.data.result);
+            
+            // 如果有预期的输出文件路径，生成并上传图片
+            if (result.data.outputFile) {
+              setTimeout(async () => {
+                await generateAndUploadImage(result.data.outputFile);
+              }, 1000); // 等待DOM更新后生成图片
+            }
           }
         }
         // 使用Alert组件替代message来避免警告
@@ -340,25 +392,87 @@ export default function ConvertPage() {
     }
   };
 
-  const handlePreview = () => {
-    // 对于图片输出，使用转换后的内容作为预览
-    if (outputTypeValue === 'image') {
-      if (activeTab === 'text' && convertedText) {
-        setPreviewContent(convertedText);
-      } else if (activeTab === 'image' && convertedText) {
-        setPreviewContent(convertedText);
-      } else {
-        // 如果还没有转换结果，提示用户先进行转换
-        alert('请先进行转换以获取预览内容');
+  const handlePreview = async () => {
+    // 检查是否有转换结果
+    if (!convertedFile && !convertedText) {
+      alert('请先进行转换以获取预览内容');
+      return;
+    }
+
+    setPreviewLoading(true);
+
+    try {
+      // 对于图片和纯文本输出，直接显示转换后的内容（不需要从文件提取）
+      if (outputTypeValue === 'image' || outputTypeValue === 'plain') {
+        if (convertedText) {
+          setPreviewContent(convertedText);
+        }
         return;
       }
-    } else {
-      // 对于非图片输出，显示原始输入内容
-      if (activeTab === 'text' && inputTextValue) {
-        setPreviewContent(inputTextValue);
-      } else if (activeTab === 'image' && convertedText) {
+
+      // 对于文件输出（docx、pdf、latex、html），从实际文件中提取内容进行预览
+      if (convertedFile) {
+        try {
+          // 调用后端API来提取文件内容
+          const response = await fetch('/api/file/extract', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filePath: convertedFile,
+              fileType: outputTypeValue
+            })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              // 为不同文件类型添加预览提示
+              let previewText = '';
+              switch (outputTypeValue) {
+                case 'latex':
+                  previewText = '⚠️ LaTeX代码预览（实际样式以编译后的文件为准）:\n\n';
+                  break;
+                case 'html':
+                  previewText = '⚠️ HTML代码预览（实际样式可能与此不同）:\n\n';
+                  break;
+                case 'docx':
+                  previewText = '⚠️ DOCX文档内容预览（实际格式以下载的文件为准）:\n\n';
+                  break;
+                case 'pdf':
+                  previewText = '📄 PDF文件信息与说明:\n\n';
+                  break;
+                default:
+                  previewText = '⚠️ 文件内容预览（实际样式可能与此不同）:\n\n';
+              }
+              setPreviewContent(previewText + result.content);
+            } else {
+              setPreviewContent('⚠️ 无法提取文件内容：' + (result.message || '未知错误'));
+            }
+          } else {
+            // 如果API调用失败，显示转换后的文本作为回退
+            if (convertedText) {
+              setPreviewContent('⚠️ 无法提取文件内容，显示转换结果:\n\n' + convertedText);
+            } else {
+              setPreviewContent('⚠️ 无法预览文件内容，请下载文件查看。');
+            }
+          }
+        } catch (error) {
+          console.error('提取文件内容失败:', error);
+          // 如果提取失败，显示转换后的文本作为回退
+          if (convertedText) {
+            setPreviewContent('⚠️ 无法提取文件内容，显示转换结果:\n\n' + convertedText);
+          } else {
+            setPreviewContent('⚠️ 预览失败，请下载文件查看。');
+          }
+        }
+      } else if (convertedText) {
+        // 如果没有文件但有转换文本，直接显示
         setPreviewContent(convertedText);
       }
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -747,7 +861,8 @@ export default function ConvertPage() {
 
   return (
     <div style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <UserNavbar />
+      <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 64 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/">
             <Button icon={<ArrowLeftOutlined />}>返回主页</Button>
@@ -803,14 +918,18 @@ export default function ConvertPage() {
                 {converting ? '转换中...' : '开始转换'}
               </Button>
               
-              <Button 
-                icon={<EyeOutlined />} 
-                onClick={handlePreview}
-                size="large"
-                style={{ marginLeft: 10 }}
-              >
-                预览
-              </Button>
+              {/* 只在转换成功后显示预览按钮 */}
+              {(convertedFile || convertedText) && (
+                <Button 
+                  icon={<EyeOutlined />} 
+                  onClick={handlePreview}
+                  loading={previewLoading}
+                  size="large"
+                  style={{ marginLeft: 10 }}
+                >
+                  {previewLoading ? '加载预览...' : '预览'}
+                </Button>
+              )}
             </div>
             
             {(convertedFile || convertedText) && (
@@ -840,7 +959,7 @@ export default function ConvertPage() {
           </Space>
         </Card>
 
-        {(previewContent || convertedText) && (
+        {(previewContent || (convertedText && outputTypeValue === 'image')) && (
           <Card title="预览">
             {outputTypeValue === 'image' ? (
               <>
@@ -873,11 +992,17 @@ export default function ConvertPage() {
                   minHeight: '200px', 
                   padding: '20px', 
                   border: '1px solid #f0f0f0',
-                  backgroundColor: '#fff'
+                  backgroundColor: '#fff',
+                  fontFamily: outputTypeValue === 'latex' ? 'monospace' : 'inherit',
+                  fontSize: outputTypeValue === 'latex' ? '14px' : 'inherit'
                 }}
               >
-                <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {previewContent || convertedText}
+                <div style={{ 
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  lineHeight: '1.6'
+                }}>
+                  {previewContent}
                 </div>
               </div>
             )}

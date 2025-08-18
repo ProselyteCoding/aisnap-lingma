@@ -1,9 +1,11 @@
 'use client';
 
 import { ConfigProvider, App as AntApp } from "antd";
+import { SessionProvider } from "next-auth/react";
 import '@ant-design/v5-patch-for-react-19';
 import theme from "./theme";
 import React from "react";
+import GlobalBackground from "./components/GlobalBackground";
 
 export default function AntDesignProviders({ 
   children 
@@ -11,10 +13,13 @@ export default function AntDesignProviders({
   children: React.ReactNode 
 }) {
   return (
-    <ConfigProvider theme={theme}>
-      <AntApp>
-        {children}
-      </AntApp>
-    </ConfigProvider>
+    <SessionProvider>
+      <ConfigProvider theme={theme}>
+        <AntApp>
+          <GlobalBackground />
+          {children}
+        </AntApp>
+      </ConfigProvider>
+    </SessionProvider>
   );
 }
