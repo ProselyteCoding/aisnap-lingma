@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, FC } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { 
   Avatar, 
   Button, 
   Form, 
   Input, 
-  message,
   Space,
   Typography,
   Modal,
-  Dropdown,
   Menu,
-  Upload
+  Upload,
+  App
 } from 'antd';
 import { 
   UserOutlined, 
@@ -57,8 +57,21 @@ interface UpdatePasswordFormValues {
   confirmNewPassword: string;
 }
 
-const UserNavbar: React.FC = () => {
+// 定义用户信息类型
+interface UserInfo {
+  nickname: string;
+  avatar?: string;
+  background?: string;
+}
+
+// 定义UserNavbar组件的props类型
+interface UserNavbarProps {
+  pageName?: string;
+}
+
+const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
   const { data: session, status, update } = useSession();
+  const { message } = App.useApp();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
@@ -72,7 +85,7 @@ const UserNavbar: React.FC = () => {
   const [updatePasswordForm] = Form.useForm();
   
   // 添加用户信息状态
-  const [userInfo, setUserInfo] = useState({
+  const [userInfo, setUserInfo] = useState<UserInfo>({
     nickname: '',
     avatar: undefined,
     background: undefined
@@ -121,19 +134,6 @@ const UserNavbar: React.FC = () => {
     // 不在选择文件时自动打开预览模态框
   };
 
-  // 取消预览
-  const handleCancelPreview = () => {
-    setPreviewImage(null);
-    setPreviewVisible(false);
-  };
-
-  // 显示图片预览
-  const showImagePreview = () => {
-    if (previewImage) {
-      setPreviewVisible(true);
-    }
-  };
-
   // 调试previewImage状态变化
   useEffect(() => {
     console.log('previewImage状态变化:', previewImage);
@@ -174,7 +174,7 @@ const UserNavbar: React.FC = () => {
         setIsLoginModalVisible(false);
         loginForm.resetFields();
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('登录过程中发生错误');
     }
   };
@@ -205,7 +205,7 @@ const UserNavbar: React.FC = () => {
       } else {
         message.error(result.message);
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('注册过程中发生错误，请稍后重试');
     }
   };
@@ -214,7 +214,7 @@ const UserNavbar: React.FC = () => {
     try {
       await signOut({ redirect: false });
       message.success('已退出登录');
-    } catch (error) {
+    } catch (_error) {
       message.error('退出登录时发生错误');
     }
   };
@@ -242,7 +242,7 @@ const UserNavbar: React.FC = () => {
   };
 
   // 处理头像上传
-  const handleAvatarUpload = async (values: { avatar?: any[] }) => {
+  const handleAvatarUpload = async (values: { avatar?: { originFileObj: File }[] }) => {
     try {
       const formData = new FormData();
       // 修复访问文件对象的方式
@@ -253,8 +253,6 @@ const UserNavbar: React.FC = () => {
         const avatarItem = values.avatar[0];
         if (avatarItem.originFileObj) {
           file = avatarItem.originFileObj;
-        } else if (avatarItem.file && avatarItem.file.originFileObj) {
-          file = avatarItem.file.originFileObj;
         } else if (avatarItem instanceof File) {
           file = avatarItem;
         }
@@ -317,7 +315,7 @@ const UserNavbar: React.FC = () => {
       } else {
         message.error(result.message);
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('昵称更新失败');
     }
   };
@@ -346,7 +344,7 @@ const UserNavbar: React.FC = () => {
       } else {
         message.error(result.message);
       }
-    } catch (error) {
+    } catch (_error) {
       message.error('密码更新失败');
     }
   };
@@ -432,40 +430,6 @@ const UserNavbar: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // 取消头像预览
-  const handleCancelAvatarPreview = () => {
-    setPreviewImage(null);
-  };
-
-  const settingsMenu = (
-    <Menu>
-      <Menu.Item key="avatar" icon={<UserOutlined />} onClick={handleUpdateAvatar}>
-        修改头像
-      </Menu.Item>
-      <Menu.Item key="nickname" icon={<EditOutlined />} onClick={handleUpdateNickname}>
-        修改昵称
-      </Menu.Item>
-      <Menu.Item key="password" icon={<LockOutlined />} onClick={handleUpdatePassword}>
-        修改密码
-      </Menu.Item>
-      <Menu.Item key="background" icon={<BgColorsOutlined />} onClick={handleBackgroundSettings}>
-        背景设置
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="history" icon={<HistoryOutlined />}>
-        <Link href="/history">转换历史</Link>
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item 
-        key="logout" 
-        icon={<LogoutOutlined />} 
-        onClick={handleLogout}
-      >
-        退出登录
-      </Menu.Item>
-    </Menu>
-  );
-
   return (
     <div style={{ 
       position: 'fixed', 
@@ -473,20 +437,56 @@ const UserNavbar: React.FC = () => {
       left: 0, 
       right: 0, 
       height: 64, 
-      backgroundColor: '#fff',
-      boxShadow: '0 2px 8px #f0f1f2',
+      backgroundColor: 'rgba(242, 244, 247, 0.95)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      borderBottom: '1px solid rgba(200, 205, 212, 0.6)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
       zIndex: 1000,
       display: 'flex',
       alignItems: 'center',
       padding: '0 24px'
     }}>
       {/* 左侧项目名 */}
-      <div style={{ flex: 1 }}>
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <Title level={3} style={{ margin: 0, color: '#1890ff', cursor: 'pointer' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <Image 
+            src="/logo.svg" 
+            alt="AISnap Logo" 
+            width={32} 
+            height={32} 
+            style={{ marginRight: '12px' }}
+          />
+          <Text style={{ 
+            fontSize: '26px', 
+            fontWeight: 700, 
+            color: '#1890ff', 
+            margin: 0,
+            fontFamily: '"Helvetica Neue", "Arial", "Segoe UI", "Roboto", sans-serif',
+            letterSpacing: '1px',
+            textShadow: '0 2px 4px rgba(24, 144, 255, 0.3)'
+          }}>
             AISnap
-          </Title>
+          </Text>
         </Link>
+        {pageName && (
+          <>
+            <div style={{ 
+              width: '1px', 
+              height: '16px', 
+              backgroundColor: '#d9d9d9', 
+              margin: '0 42px 0 42px' 
+            }} />
+            <Text style={{ 
+              color: '#595959', 
+              fontSize: '16px', 
+              fontWeight: 500,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+            }}>
+              {pageName}
+            </Text>
+          </>
+        )}
       </div>
 
       {/* 右侧用户信息 */}
@@ -496,8 +496,8 @@ const UserNavbar: React.FC = () => {
         ) : session?.user ? (
           <Space size="middle">
             <Avatar 
-              src={userInfo.avatar && userInfo.avatar.trim() ? userInfo.avatar : undefined} 
-              icon={!userInfo.avatar || !userInfo.avatar.trim() ? <UserOutlined /> : undefined} 
+              src={userInfo.avatar?.trim() ? userInfo.avatar : undefined} 
+              icon={!userInfo.avatar?.trim() ? <UserOutlined /> : undefined} 
               onError={() => {
                 // 头像加载失败时，清除错误的头像路径
                 setUserInfo(prev => ({ ...prev, avatar: undefined }));
@@ -664,32 +664,53 @@ const UserNavbar: React.FC = () => {
         onCancel={() => setIsSettingsModalVisible(false)}
         footer={null}
       >
-        <Menu mode="inline" style={{ border: 'none' }}>
-          <Menu.Item key="avatar" icon={<UserOutlined />} onClick={handleUpdateAvatar}>
-            修改头像
-          </Menu.Item>
-          <Menu.Item key="nickname" icon={<EditOutlined />} onClick={handleUpdateNickname}>
-            修改昵称
-          </Menu.Item>
-          <Menu.Item key="password" icon={<LockOutlined />} onClick={handleUpdatePassword}>
-            修改密码
-          </Menu.Item>
-          <Menu.Item key="background" icon={<BgColorsOutlined />} onClick={handleBackgroundSettings}>
-            背景设置
-          </Menu.Item>
-          <Menu.Divider />
-          <Menu.Item key="history" icon={<HistoryOutlined />}>
-            <Link href="/history" onClick={() => setIsSettingsModalVisible(false)}>转换历史</Link>
-          </Menu.Item>
-          <Menu.Divider />
-          <Menu.Item 
-            key="logout" 
-            icon={<LogoutOutlined />} 
-            onClick={handleLogout}
-          >
-            退出登录
-          </Menu.Item>
-        </Menu>
+        <Menu 
+          mode="inline" 
+          style={{ border: 'none' }}
+          items={[
+            {
+              key: 'avatar',
+              icon: <UserOutlined />,
+              label: '修改头像',
+              onClick: handleUpdateAvatar
+            },
+            {
+              key: 'nickname',
+              icon: <EditOutlined />,
+              label: '修改昵称',
+              onClick: handleUpdateNickname
+            },
+            {
+              key: 'password',
+              icon: <LockOutlined />,
+              label: '修改密码',
+              onClick: handleUpdatePassword
+            },
+            {
+              key: 'background',
+              icon: <BgColorsOutlined />,
+              label: '背景设置',
+              onClick: handleBackgroundSettings
+            },
+            {
+              type: 'divider'
+            },
+            {
+              key: 'history',
+              icon: <HistoryOutlined />,
+              label: <Link href="/history" onClick={() => setIsSettingsModalVisible(false)}>转换历史</Link>
+            },
+            {
+              type: 'divider'
+            },
+            {
+              key: 'logout',
+              icon: <LogoutOutlined />,
+              label: '退出登录',
+              onClick: handleLogout
+            }
+          ]}
+        />
       </Modal>
 
       {/* 修改头像模态框 */}
@@ -767,9 +788,11 @@ const UserNavbar: React.FC = () => {
                     setPreviewVisible(true);
                   }}
                 >
-                  <img 
+                  <Image 
                     src={previewImage} 
                     alt="预览" 
+                    width={200}
+                    height={200}
                     style={{ 
                       width: '100%', 
                       height: '100%', 
@@ -1086,8 +1109,10 @@ const UserNavbar: React.FC = () => {
               overflow: 'hidden',
               margin: '0 auto'
             }}>
-              <img 
+              <Image 
                 alt="预览头像" 
+                width={200}
+                height={200}
                 style={{ 
                   width: '100%', 
                   height: '100%', 

@@ -132,7 +132,12 @@ export default function ImageConversion() {
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/">
-            <Button icon={<ArrowLeftOutlined />}>返回主页</Button>
+            <Button 
+              icon={<ArrowLeftOutlined />}
+              className="back-button"
+            >
+              返回主页
+            </Button>
           </Link>
           <Title level={2} style={{ margin: 0, flex: 1, textAlign: 'center' }}>
             图片格式转换

@@ -22,7 +22,7 @@ import {
 import { useSession } from 'next-auth/react';
 import UserNavbar from '../components/UserNavbar';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 // 定义转换记录类型
 interface ConversionRecord {
@@ -234,17 +234,18 @@ export default function HistoryPage() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', marginTop: 64 }}>
-      <UserNavbar />
+      <UserNavbar pageName="转换历史" />
       
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
           <Link href="/convert">
-            <Button icon={<ArrowLeftOutlined />}>返回转换</Button>
+            <Button 
+              icon={<ArrowLeftOutlined />}
+              className="back-button"
+            >
+              返回转换
+            </Button>
           </Link>
-          <Title level={2} style={{ margin: 0, flex: 1, textAlign: 'center' }}>
-            转换历史
-          </Title>
-          <div style={{ width: 100 }}></div>
         </div>
 
         {status === 'authenticated' ? (

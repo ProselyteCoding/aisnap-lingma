@@ -12,7 +12,9 @@ import {
   Upload, 
   Select, 
   Alert,
-  Collapse
+  Collapse,
+  Row,
+  Col
 } from 'antd';
 
 // 从antd/es导入需要的组件以避免打包问题
@@ -27,19 +29,18 @@ import {
   ArrowLeftOutlined,
   CopyOutlined,
   DownloadOutlined,
-  EyeOutlined,
   PictureOutlined,
   SettingOutlined,
   UserOutlined,
-  RobotOutlined
+  RobotOutlined,
+  FileImageOutlined
 } from '@ant-design/icons';
 import type { UploadProps, UploadFile, TabsProps } from 'antd';
 import UserNavbar from '../components/UserNavbar';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-const { Panel } = Collapse;
 
 // 定义图片设置类型
 interface ImageSettings {
@@ -62,8 +63,7 @@ export default function ConvertPage() {
   const [converting, setConverting] = useState(false);
   const [convertedFile, setConvertedFile] = useState<string | null>(null);
   const [convertedText, setConvertedText] = useState<string | null>(null);
-  const [previewContent, setPreviewContent] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [filePreviewContent, setFilePreviewContent] = useState<string | null>(null);
   const [prompt, setPrompt] = useState(''); // 用户输入的提示词
   const previewRef = useRef<HTMLDivElement>(null);
   
@@ -74,7 +74,7 @@ export default function ConvertPage() {
     backgroundColor: '#ffffff',
     textColor: '#000000',
     aiTheme: 'tongyi',
-    width: 600,
+    width: 450,
     padding: 20,
     contentFormat: 'markdown' // 默认为markdown（输出2）
   });
@@ -234,7 +234,7 @@ export default function ConvertPage() {
     setConverting(true);
     setConvertedFile(null);
     setConvertedText(null);
-    setPreviewContent(null);
+    setFilePreviewContent(null);
 
     try {
       // 调用API路由进行转换
@@ -257,13 +257,16 @@ export default function ConvertPage() {
       if (result.success && result.data) {
         if (result.data.outputFile) {
           setConvertedFile(result.data.outputFile);
+          // 对于文件输出（除了图片），获取文件内容用于预览
+          if (outputTypeValue !== 'image' && outputTypeValue !== 'plain') {
+            const content = await getFileContentForPreview(result.data.outputFile, outputTypeValue);
+            if (content) {
+              setFilePreviewContent(content);
+            }
+          }
         }
         if (result.data.result) {
           setConvertedText(result.data.result);
-          // 对于图片输出，设置预览内容
-          if (outputTypeValue === 'image') {
-            setPreviewContent(result.data.result);
-          }
         }
         // 使用Alert组件替代message来避免警告
       } else {
@@ -286,7 +289,7 @@ export default function ConvertPage() {
     setConverting(true);
     setConvertedFile(null);
     setConvertedText(null);
-    setPreviewContent(null);
+    setFilePreviewContent(null);
 
     try {
       const formData = new FormData();
@@ -306,19 +309,22 @@ export default function ConvertPage() {
       if (result.success && result.data) {
         if (result.data.outputFile) {
           setConvertedFile(result.data.outputFile);
+          // 对于文件输出（除了图片），获取文件内容用于预览
+          if (outputTypeValue !== 'image' && outputTypeValue !== 'plain') {
+            const content = await getFileContentForPreview(result.data.outputFile, outputTypeValue);
+            if (content) {
+              setFilePreviewContent(content);
+            }
+          }
         }
         if (result.data.result) {
           setConvertedText(result.data.result);
-          // 对于图片输出，设置预览内容
-          if (outputTypeValue === 'image') {
-            setPreviewContent(result.data.result);
-            
-            // 如果有预期的输出文件路径，生成并上传图片
-            if (result.data.outputFile) {
-              setTimeout(async () => {
-                await generateAndUploadImage(result.data.outputFile);
-              }, 1000); // 等待DOM更新后生成图片
-            }
+          
+          // 如果输出类型是图片，需要生成并上传图片
+          if (outputTypeValue === 'image' && result.data.outputFile) {
+            setTimeout(async () => {
+              await generateAndUploadImage(result.data.outputFile);
+            }, 1000); // 等待DOM更新后生成图片
           }
         }
         // 使用Alert组件替代message来避免警告
@@ -331,6 +337,15 @@ export default function ConvertPage() {
     } finally {
       setConverting(false);
     }
+  };
+
+  // 处理输出类型变化
+  const handleOutputTypeChange = (value: 'docx' | 'html' | 'latex' | 'pdf' | 'plain' | 'image') => {
+    setOutputTypeValue(value);
+    // 切换输出类型时清空预览内容
+    setConvertedFile(null);
+    setConvertedText(null);
+    setFilePreviewContent(null);
   };
 
   const handleConvert = () => {
@@ -392,87 +407,46 @@ export default function ConvertPage() {
     }
   };
 
-  const handlePreview = async () => {
-    // 检查是否有转换结果
-    if (!convertedFile && !convertedText) {
-      alert('请先进行转换以获取预览内容');
-      return;
+  // 获取文件类型的预览提示信息
+  const getPreviewHint = (fileType: string): string => {
+    switch (fileType) {
+      case 'latex':
+        return 'LaTeX代码预览（实际样式以编译后的文件为准）';
+      case 'html':
+        return 'HTML代码预览（实际样式可能与此不同）';
+      case 'docx':
+        return 'DOCX文档内容预览（实际格式以下载的文件为准）';
+      case 'pdf':
+        return 'PDF文件内容预览';
+      default:
+        return '文件内容预览（实际样式可能与此不同）';
     }
+  };
 
-    setPreviewLoading(true);
-
+  // 获取文件内容用于预览
+  const getFileContentForPreview = async (filePath: string, fileType: string): Promise<string | null> => {
     try {
-      // 对于图片和纯文本输出，直接显示转换后的内容（不需要从文件提取）
-      if (outputTypeValue === 'image' || outputTypeValue === 'plain') {
-        if (convertedText) {
-          setPreviewContent(convertedText);
-        }
-        return;
-      }
+      const response = await fetch('/api/file/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filePath: filePath,
+          fileType: fileType
+        })
+      });
 
-      // 对于文件输出（docx、pdf、latex、html），从实际文件中提取内容进行预览
-      if (convertedFile) {
-        try {
-          // 调用后端API来提取文件内容
-          const response = await fetch('/api/file/extract', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              filePath: convertedFile,
-              fileType: outputTypeValue
-            })
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-              // 为不同文件类型添加预览提示
-              let previewText = '';
-              switch (outputTypeValue) {
-                case 'latex':
-                  previewText = '⚠️ LaTeX代码预览（实际样式以编译后的文件为准）:\n\n';
-                  break;
-                case 'html':
-                  previewText = '⚠️ HTML代码预览（实际样式可能与此不同）:\n\n';
-                  break;
-                case 'docx':
-                  previewText = '⚠️ DOCX文档内容预览（实际格式以下载的文件为准）:\n\n';
-                  break;
-                case 'pdf':
-                  previewText = '📄 PDF文件信息与说明:\n\n';
-                  break;
-                default:
-                  previewText = '⚠️ 文件内容预览（实际样式可能与此不同）:\n\n';
-              }
-              setPreviewContent(previewText + result.content);
-            } else {
-              setPreviewContent('⚠️ 无法提取文件内容：' + (result.message || '未知错误'));
-            }
-          } else {
-            // 如果API调用失败，显示转换后的文本作为回退
-            if (convertedText) {
-              setPreviewContent('⚠️ 无法提取文件内容，显示转换结果:\n\n' + convertedText);
-            } else {
-              setPreviewContent('⚠️ 无法预览文件内容，请下载文件查看。');
-            }
-          }
-        } catch (error) {
-          console.error('提取文件内容失败:', error);
-          // 如果提取失败，显示转换后的文本作为回退
-          if (convertedText) {
-            setPreviewContent('⚠️ 无法提取文件内容，显示转换结果:\n\n' + convertedText);
-          } else {
-            setPreviewContent('⚠️ 预览失败，请下载文件查看。');
-          }
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          return result.content;
         }
-      } else if (convertedText) {
-        // 如果没有文件但有转换文本，直接显示
-        setPreviewContent(convertedText);
       }
-    } finally {
-      setPreviewLoading(false);
+      return null;
+    } catch (error) {
+      console.error('获取文件内容失败:', error);
+      return null;
     }
   };
 
@@ -584,7 +558,7 @@ export default function ConvertPage() {
 
   // 渲染对话式预览
   const renderDialogPreview = () => {
-    if (!previewContent) return null;
+    if (!convertedText) return null;
 
     const themeConfig = getAIThemeConfig(imageSettings.aiTheme);
 
@@ -622,7 +596,8 @@ export default function ConvertPage() {
               color: '#1a1a1a',
               textAlign: 'left',
               wordBreak: 'break-word',
-              lineHeight: '1.6'
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap' // 支持换行符显示
             }}>
               {prompt}
             </div>
@@ -689,7 +664,7 @@ export default function ConvertPage() {
               wordBreak: 'break-word', // 自动换行
               textAlign: 'left' // 文字左对齐
             }}>
-              {previewContent}
+              {convertedText}
             </div>
           </div>
         </div>
@@ -700,110 +675,135 @@ export default function ConvertPage() {
   // 渲染图片样式设置面板
   const renderImageSettings = () => (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      {/* 分享提示词 - 独立一行占满宽度 */}
       <div>
         <Text>分享提示词:</Text>
-        <Input
+        <Input.TextArea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="例如：请解释前端开发"
-          style={{ marginLeft: 10, width: 300 }}
+          placeholder="例如：请解释前端开发&#13;&#10;支持换行输入多行提示词"
+          style={{ marginTop: 8, width: '100%' }}
+          autoSize={{ minRows: 2, maxRows: 4 }}
         />
       </div>
       
-      <div>
-        <Text>输出内容格式:</Text>
-        <Select
-          value={imageSettings.contentFormat}
-          onChange={(value) => updateImageSettings('contentFormat', value as 'markdown' | 'latex' | 'docx')}
-          style={{ width: 150, marginLeft: 10 }}
-        >
-          <Option value="markdown">Markdown</Option>
-          <Option value="latex">LaTeX</Option>
-          <Option value="docx">DOCX</Option>
-        </Select>
-      </div>
-      
-      <div>
-        <Text>字体:</Text>
-        <Select
-          value={imageSettings.fontFamily}
-          onChange={(value) => updateImageSettings('fontFamily', value)}
-          style={{ width: 150, marginLeft: 10 }}
-        >
-          <Option value="Arial">Arial</Option>
-          <Option value="SimSun">宋体</Option>
-          <Option value="SimHei">黑体</Option>
-          <Option value="Times New Roman">Times New Roman</Option>
-          <Option value="Microsoft YaHei">微软雅黑</Option>
-          <Option value="KaiTi">楷体</Option>
-          <Option value="FangSong">仿宋</Option>
-        </Select>
-      </div>
-      
-      <div>
-        <Text>字体大小:</Text>
-        <Slider
-          min={10}
-          max={24}
-          value={imageSettings.fontSize}
-          onChange={(value) => updateImageSettings('fontSize', value)}
-          style={{ width: 200, marginLeft: 10, marginRight: 10 }}
-        />
-        <Text code>{imageSettings.fontSize}px</Text>
-      </div>
-      
-      <div>
-        <Text>背景颜色:</Text>
-        <ColorPicker
-          value={imageSettings.backgroundColor}
-          onChange={(value) => updateImageSettings('backgroundColor', value.toHexString())}
-          style={{ marginLeft: 10 }}
-        />
-      </div>
-      
-      <div>
-        <Text>文字颜色:</Text>
-        <ColorPicker
-          value={imageSettings.textColor}
-          onChange={(value) => updateImageSettings('textColor', value.toHexString())}
-          style={{ marginLeft: 10 }}
-        />
-      </div>
-      
-      <div>
-        <Text>AI主题:</Text>
-        <Select
-          value={imageSettings.aiTheme}
-          onChange={(value) => {
-            applyAITheme(value);
-          }}
-          style={{ width: 150, marginLeft: 10 }}
-        >
-          <Option value="tongyi">通义千问</Option>
-          <Option value="openai">OpenAI</Option>
-          <Option value="wenxinyiyan">文心一言</Option>
-          <Option value="deepseek">DeepSeek</Option>
-          <Option value="doubao">豆包</Option>
-          <Option value="yuanbao">元宝</Option>
-          <Option value="kimi">Kimi</Option>
-          <Option value="general">通用</Option>
-        </Select>
-        <Text type="secondary" style={{ marginLeft: 10, fontSize: '12px' }}>
-          选择AI主题将自动应用配色方案
-        </Text>
-      </div>
-      
-      <div>
-        <Text>宽度:</Text>
-        <Slider
-          min={400}
-          max={1000}
-          value={imageSettings.width}
-          onChange={(value) => updateImageSettings('width', value)}
-          style={{ width: 200, marginLeft: 10, marginRight: 10 }}
-        />
-        <Text code>{imageSettings.width}px</Text>
-      </div>
+      {/* 其他设置项 - 左右两栏布局 */}
+      <Row gutter={[16, 16]}>
+        {/* 左栏 */}
+        <Col span={12}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div>
+              <Text>输出内容格式:</Text>
+              <Select
+                value={imageSettings.contentFormat}
+                onChange={(value) => updateImageSettings('contentFormat', value as 'markdown' | 'latex' | 'docx')}
+                style={{ width: '100%', marginTop: 4 }}
+              >
+                <Option value="markdown">Markdown</Option>
+                <Option value="latex">LaTeX</Option>
+                <Option value="docx">DOCX</Option>
+              </Select>
+            </div>
+            
+            <div>
+              <Text>字体:</Text>
+              <Select
+                value={imageSettings.fontFamily}
+                onChange={(value) => updateImageSettings('fontFamily', value)}
+                style={{ width: '100%', marginTop: 4 }}
+              >
+                <Option value="Arial">Arial</Option>
+                <Option value="SimSun">宋体</Option>
+                <Option value="SimHei">黑体</Option>
+                <Option value="Times New Roman">Times New Roman</Option>
+                <Option value="Microsoft YaHei">微软雅黑</Option>
+                <Option value="KaiTi">楷体</Option>
+                <Option value="FangSong">仿宋</Option>
+              </Select>
+            </div>
+            
+            <div>
+              <Text>字体大小:</Text>
+              <div style={{ marginTop: 8 }}>
+                <Slider
+                  min={10}
+                  max={24}
+                  value={imageSettings.fontSize}
+                  onChange={(value) => updateImageSettings('fontSize', value)}
+                  style={{ width: 'calc(100% - 50px)', marginRight: 8 }}
+                />
+                <Text code>{imageSettings.fontSize}px</Text>
+              </div>
+            </div>
+            
+            <div>
+              <Text>背景颜色:</Text>
+              <div style={{ marginTop: 4 }}>
+                <ColorPicker
+                  value={imageSettings.backgroundColor}
+                  onChange={(value) => updateImageSettings('backgroundColor', value.toHexString())}
+                  showText
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </Space>
+        </Col>
+        
+        {/* 右栏 */}
+        <Col span={12}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div>
+              <Text>文字颜色:</Text>
+              <div style={{ marginTop: 4 }}>
+                <ColorPicker
+                  value={imageSettings.textColor}
+                  onChange={(value) => updateImageSettings('textColor', value.toHexString())}
+                  showText
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Text>AI主题:</Text>
+              <Select
+                value={imageSettings.aiTheme}
+                onChange={(value) => {
+                  applyAITheme(value);
+                }}
+                style={{ width: '100%', marginTop: 4 }}
+              >
+                <Option value="tongyi">通义千问</Option>
+                <Option value="openai">OpenAI</Option>
+                <Option value="wenxinyiyan">文心一言</Option>
+                <Option value="deepseek">DeepSeek</Option>
+                <Option value="doubao">豆包</Option>
+                <Option value="yuanbao">元宝</Option>
+                <Option value="kimi">Kimi</Option>
+                <Option value="general">通用</Option>
+              </Select>
+              <Text type="secondary" style={{ fontSize: '12px', marginTop: 4, display: 'block' }}>
+                选择AI主题将自动应用配色方案
+              </Text>
+            </div>
+            
+            <div>
+              <Text>宽度:</Text>
+              <div style={{ marginTop: 8 }}>
+                <Slider
+                  min={400}
+                  max={1000}
+                  value={imageSettings.width}
+                  onChange={(value) => updateImageSettings('width', value)}
+                  style={{ width: 'calc(100% - 60px)', marginRight: 8 }}
+                />
+                <Text code>{imageSettings.width}px</Text>
+              </div>
+            </div>
+          </Space>
+        </Col>
+      </Row>
     </Space>
   );
 
@@ -860,154 +860,430 @@ export default function ConvertPage() {
   ];
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <UserNavbar />
+    <div style={{ 
+      padding: '40px 20px', 
+      maxWidth: '1400px', 
+      margin: '0 auto',
+      minHeight: '100vh',
+      backgroundColor: 'transparent'
+    }}>
+      <UserNavbar pageName="格式转换" />
       <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 64 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
           <Link href="/">
-            <Button icon={<ArrowLeftOutlined />}>返回主页</Button>
+            <Button 
+              icon={<ArrowLeftOutlined />}
+              className="back-button"
+            >
+              返回主页
+            </Button>
           </Link>
-          <Title level={2} style={{ margin: 0, flex: 1, textAlign: 'center' }}>
-            文档格式转换
-          </Title>
-          <div style={{ width: 100 }}></div>
         </div>
 
-        <Card>
-          <Tabs activeKey={activeTab} items={items} onChange={setActiveTab} />
-        </Card>
+        {/* 响应式布局：移动端上下，PC端左右 */}
+        <Row gutter={[24, 24]}>
+          {/* 输入区域 */}
+          <Col xs={24} lg={10}>
+            <Card 
+              title="输入内容" 
+              className="transparent-card"
+              style={{ 
+                height: '100%'
+              }}
+            >
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Tabs activeKey={activeTab} items={items} onChange={setActiveTab} />
 
-        <Card>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <div>
-              <Text strong>输出格式:</Text>
-              <Select
-                value={outputTypeValue}
-                onChange={setOutputTypeValue}
-                style={{ width: 200, marginLeft: 10 }}
-              >
-                <Option value="docx">DOCX文档</Option>
-                <Option value="html">HTML文档</Option>
-                <Option value="latex">LaTeX文档</Option>
-                <Option value="pdf">PDF文档</Option>
-                <Option value="plain">纯文本</Option>
-                <Option value="image">图片</Option>
-              </Select>
-            </div>
-            
-            {outputTypeValue === 'image' && (
-              <Collapse 
-                bordered={false} 
-                defaultActiveKey={['1']}
-                style={{ background: '#f5f5f5' }}
-              >
-                <Panel header={<span><SettingOutlined /> 图片样式设置</span>} key="1">
-                  {renderImageSettings()}
-                </Panel>
-              </Collapse>
-            )}
-            
-            <div style={{ textAlign: 'center' }}>
-              <Button 
-                type="primary" 
-                icon={<FileTextOutlined />} 
-                onClick={handleConvert}
-                loading={converting}
-                size="large"
-              >
-                {converting ? '转换中...' : '开始转换'}
-              </Button>
-              
-              {/* 只在转换成功后显示预览按钮 */}
-              {(convertedFile || convertedText) && (
-                <Button 
-                  icon={<EyeOutlined />} 
-                  onClick={handlePreview}
-                  loading={previewLoading}
-                  size="large"
-                  style={{ marginLeft: 10 }}
-                >
-                  {previewLoading ? '加载预览...' : '预览'}
-                </Button>
-              )}
-            </div>
-            
-            {(convertedFile || convertedText) && (
-              <div style={{ textAlign: 'center', marginTop: 20 }}>
-                {convertedFile && (
-                  <Button 
-                    type="primary" 
-                    icon={<DownloadOutlined />} 
-                    onClick={handleDownload}
-                    style={{ marginRight: 10 }}
+                <div>
+                  <Text strong>输出格式:</Text>
+                  <Select
+                    value={outputTypeValue}
+                    onChange={handleOutputTypeChange}
+                    style={{ width: 200, marginLeft: 10 }}
                   >
-                    下载文件
-                  </Button>
-                )}
-                
-                {convertedText && outputTypeValue !== 'image' && (
-                  <Button 
-                    icon={<CopyOutlined />} 
-                    onClick={handleCopyText}
-                    style={{ marginRight: 10 }}
-                  >
-                    复制文本
-                  </Button>
-                )}
-              </div>
-            )}
-          </Space>
-        </Card>
-
-        {(previewContent || (convertedText && outputTypeValue === 'image')) && (
-          <Card title="预览">
-            {outputTypeValue === 'image' ? (
-              <>
-                <div style={{ overflowX: 'auto', textAlign: 'center' }}>
-                  {renderDialogPreview()}
+                    <Option value="docx">DOCX文档</Option>
+                    <Option value="html">HTML文档</Option>
+                    <Option value="latex">LaTeX文档</Option>
+                    <Option value="pdf">PDF文档</Option>
+                    <Option value="plain">纯文本</Option>
+                    <Option value="image">图片</Option>
+                  </Select>
                 </div>
                 
-                <div style={{ textAlign: 'center', marginTop: 20 }}>
-                  <Space>
+                {outputTypeValue === 'image' && (
+                  <Collapse 
+                    bordered={false} 
+                    defaultActiveKey={['1']}
+                    style={{ background: '#f5f5f5' }}
+                    items={[
+                      {
+                        key: '1',
+                        label: <span><SettingOutlined /> 图片样式设置</span>,
+                        children: renderImageSettings()
+                      }
+                    ]}
+                  />
+                )}
+                
+                <div style={{ textAlign: 'center' }}>
+                  <Space size="middle" wrap>
                     <Button 
                       type="primary" 
-                      icon={<DownloadOutlined />}
-                      onClick={handleSaveAsImage}
+                      icon={<FileTextOutlined />} 
+                      onClick={handleConvert}
+                      loading={converting}
+                      style={{ 
+                        height: '40px',
+                        lineHeight: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
                     >
-                      下载图片
+                      {converting ? '转换中...' : '开始转换'}
                     </Button>
-                    <Button 
-                      icon={<CopyOutlined />}
-                      onClick={handleCopyImageToClipboard}
-                    >
-                      复制到剪贴板
-                    </Button>
+                    
+                    {/* 下载和复制按钮 */}
+                    {outputTypeValue === 'image' && convertedText ? (
+                      <>
+                        <Button 
+                          type="primary" 
+                          icon={<DownloadOutlined />}
+                          onClick={handleSaveAsImage}
+                          style={{ 
+                            height: '40px',
+                            lineHeight: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          下载图片
+                        </Button>
+                        <Button 
+                          icon={<CopyOutlined />}
+                          onClick={handleCopyImageToClipboard}
+                          style={{ 
+                            height: '40px',
+                            lineHeight: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          复制到剪贴板
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        {convertedFile && (
+                          <Button 
+                            type="primary" 
+                            icon={<DownloadOutlined />} 
+                            onClick={handleDownload}
+                            style={{ 
+                              height: '40px',
+                              lineHeight: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            下载文件
+                          </Button>
+                        )}
+                        {convertedText && (
+                          <Button 
+                            icon={<CopyOutlined />} 
+                            onClick={handleCopyText}
+                            style={{ 
+                              height: '40px',
+                              lineHeight: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            复制文本
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </Space>
                 </div>
-              </>
-            ) : (
-              <div 
-                ref={previewRef}
-                style={{ 
-                  minHeight: '200px', 
-                  padding: '20px', 
-                  border: '1px solid #f0f0f0',
-                  backgroundColor: '#fff',
-                  fontFamily: outputTypeValue === 'latex' ? 'monospace' : 'inherit',
-                  fontSize: outputTypeValue === 'latex' ? '14px' : 'inherit'
-                }}
-              >
-                <div style={{ 
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  lineHeight: '1.6'
-                }}>
-                  {previewContent}
-                </div>
+              </Space>
+            </Card>
+          </Col>
+
+          {/* 预览区域 */}
+          <Col xs={24} lg={14}>
+            <Card 
+              title="预览结果" 
+              className="transparent-card"
+              style={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column'
+              }}
+              styles={{ 
+                body: {
+                  flex: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  padding: '24px'
+                }
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                {!convertedFile && !convertedText ? (
+                    <div style={{ 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      minHeight: '300px',
+                      textAlign: 'center',
+                      padding: '40px 20px'
+                    }}>
+                      <FileImageOutlined style={{ 
+                        fontSize: '48px', 
+                        color: '#d9d9d9',
+                        marginBottom: '16px'
+                      }} />
+                      <p style={{
+                        color: '#8c8c8c',
+                        fontSize: '16px',
+                        margin: '0 0 8px 0'
+                      }}>
+                        预览区域
+                      </p>
+                      <p style={{
+                        color: '#bfbfbf',
+                        fontSize: '14px',
+                        margin: 0
+                      }}>
+                        转换完成后预览内容将在此显示
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 图片输出预览 */}
+                      {outputTypeValue === 'image' && convertedText ? (
+                        <div>
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: '#666', 
+                            marginBottom: '8px',
+                            padding: '8px 12px',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '4px'
+                          }}>
+                            💡 图片模板预览（可下载或复制到剪贴板）
+                          </div>
+                          <div style={{ overflowX: 'auto', textAlign: 'center' }}>
+                            <div style={{
+                              border: '2px dashed #d9d9d9',
+                              borderRadius: '8px',
+                              padding: '20px',
+                              margin: '0 auto',
+                              display: 'inline-block'
+                            }}>
+                              {renderDialogPreview()}
+                            </div>
+                          </div>
+                        </div>
+                      ) : 
+                    /* HTML输出预览 */
+                    outputTypeValue === 'html' ? (
+                      <div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#666', 
+                          marginBottom: '8px',
+                          padding: '8px 12px',
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: '4px'
+                        }}>
+                          💡 {getPreviewHint('html')}
+                        </div>
+                        <div 
+                          ref={previewRef}
+                          style={{ 
+                            minHeight: '200px', 
+                            padding: '20px', 
+                            border: '1px solid #f0f0f0',
+                            backgroundColor: '#fff'
+                          }}
+                          dangerouslySetInnerHTML={{ 
+                            __html: filePreviewContent || convertedText || ''
+                          }}
+                        />
+                      </div>
+                    ) : 
+                    /* LaTeX和纯文本输出预览 */
+                    (outputTypeValue === 'latex' || outputTypeValue === 'plain') ? (
+                      <div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#666', 
+                          marginBottom: '8px',
+                          padding: '8px 12px',
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: '4px'
+                        }}>
+                          💡 {getPreviewHint(outputTypeValue)}
+                        </div>
+                        <div 
+                          ref={previewRef}
+                          style={{ 
+                            minHeight: '200px', 
+                            padding: '20px', 
+                            border: '1px solid #f0f0f0',
+                            backgroundColor: '#fff',
+                            fontFamily: outputTypeValue === 'latex' ? 'monospace' : 'inherit',
+                            fontSize: outputTypeValue === 'latex' ? '14px' : 'inherit'
+                          }}
+                        >
+                          <pre style={{ 
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.6',
+                            margin: 0,
+                            fontFamily: 'inherit'
+                          }}>
+                            {filePreviewContent || convertedText || ''}
+                          </pre>
+                        </div>
+                      </div>
+                    ) : 
+                    /* DOCX输出预览 */
+                    outputTypeValue === 'docx' ? (
+                      <div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#666', 
+                          marginBottom: '8px',
+                          padding: '8px 12px',
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: '4px'
+                        }}>
+                          💡 {getPreviewHint('docx')}
+                        </div>
+                        {filePreviewContent ? (
+                          <div 
+                            ref={previewRef}
+                            style={{ 
+                              minHeight: '200px', 
+                              padding: '20px', 
+                              border: '1px solid #f0f0f0',
+                              backgroundColor: '#fff'
+                            }}
+                          >
+                            <pre style={{ 
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              lineHeight: '1.6',
+                              margin: 0,
+                              fontFamily: 'inherit'
+                            }}>
+                              {filePreviewContent}
+                            </pre>
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            textAlign: 'center', 
+                            padding: '60px 20px',
+                            color: '#666'
+                          }}>
+                            <FileTextOutlined style={{ fontSize: '48px', marginBottom: '16px', display: 'block', color: '#1890ff' }} />
+                            <p>文件已生成完成</p>
+                            <p style={{ fontSize: '14px', color: '#999' }}>
+                              正在获取文件内容预览...
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : 
+                    /* PDF输出预览 */
+                    outputTypeValue === 'pdf' ? (
+                      <div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#666', 
+                          marginBottom: '8px',
+                          padding: '8px 12px',
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: '4px'
+                        }}>
+                          💡 {getPreviewHint('pdf')}
+                        </div>
+                        {filePreviewContent ? (
+                          <div 
+                            ref={previewRef}
+                            style={{ 
+                              minHeight: '200px', 
+                              padding: '20px', 
+                              border: '1px solid #f0f0f0',
+                              backgroundColor: '#fff'
+                            }}
+                          >
+                            <pre style={{ 
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              lineHeight: '1.6',
+                              margin: 0,
+                              fontFamily: 'inherit'
+                            }}>
+                              {filePreviewContent}
+                            </pre>
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            textAlign: 'center', 
+                            padding: '60px 20px',
+                            color: '#666'
+                          }}>
+                            <FileTextOutlined style={{ fontSize: '48px', marginBottom: '16px', display: 'block', color: '#1890ff' }} />
+                            <p>文件已生成完成</p>
+                            <p style={{ fontSize: '14px', color: '#999' }}>
+                              PDF文件无法在线预览，请下载查看
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        textAlign: 'center', 
+                        padding: '40px 20px',
+                        color: '#666'
+                      }}>
+                        <p>转换完成</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            )}
-          </Card>
-        )}
+              
+              {/* 图片输出时在预览框底部显示提示 */}
+              {outputTypeValue === 'image' && convertedText && (
+                <div style={{
+                  marginTop: 'auto',
+                  padding: '12px 16px',
+                  fontSize: '14px',
+                  color: '#595959',
+                  fontWeight: 500,
+                  textAlign: 'center',
+                  backgroundColor: '#f0f2f5',
+                  borderRadius: '6px',
+                  border: '1px solid #d9d9d9'
+                }}>
+                  📸 虚线区域内容将生成为图片
+                </div>
+              )}
+            </Card>
+          </Col>
+        </Row>
       </Space>
     </div>
   );

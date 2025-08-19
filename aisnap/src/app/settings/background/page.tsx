@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Upload, Button, Card, Divider, message, Spin, Image } from 'antd';
+import { Upload, Button, Card, Divider, Spin, Image, App } from 'antd';
 import { InboxOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ const { Dragger } = Upload;
 
 export default function BackgroundSettingsPage() {
   const { data: session } = useSession();
+  const { message } = App.useApp();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [currentBackground, setCurrentBackground] = useState<string | null>(null);

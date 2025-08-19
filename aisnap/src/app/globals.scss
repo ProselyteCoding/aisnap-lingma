@@ -9,6 +9,18 @@ body {
     'Noto Color Emoji';
 }
 
+/* 响应式布局样式 */
+.ant-col {
+  min-height: 1px;
+}
+
+/* 确保卡片在移动端有适当的间距 */
+@media (max-width: 991px) {
+  .ant-card {
+    margin-bottom: 16px;
+  }
+}
+
 /* 头像上传器样式 */
 .avatar-uploader .ant-upload.ant-upload-select {
   width: 120px !important;
@@ -19,4 +31,40 @@ body {
 
 .avatar-uploader .ant-upload.ant-upload-select:hover {
   border-color: #1890ff !important;
+}
+
+/* 透明卡片样式 */
+.transparent-card {
+  background-color: rgba(242, 244, 247, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(200, 205, 212, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  
+  .ant-card-body {
+    background-color: transparent !important;
+  }
+  
+  .ant-card-head {
+    background-color: rgba(235, 238, 242, 0.9) !important;
+    border-bottom: 1px solid rgba(200, 205, 212, 0.6) !important;
+  }
+}
+
+/* 统一的返回按钮样式 */
+.back-button {
+  background-color: rgba(242, 244, 247, 0.85) !important;
+  border-color: rgba(200, 205, 212, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  
+  &:hover {
+    background-color: rgba(235, 238, 242, 0.9) !important;
+    border-color: rgba(180, 190, 200, 0.8) !important;
+  }
+  
+  &:focus {
+    background-color: rgba(235, 238, 242, 0.9) !important;
+    border-color: rgba(180, 190, 200, 0.8) !important;
+  }
 }

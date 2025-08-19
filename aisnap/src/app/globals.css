@@ -24,3 +24,19 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 透明卡片样式 */
+.transparent-card {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(217, 217, 217, 0.3) !important;
+}
+
+.transparent-card .ant-card-body {
+  background-color: transparent !important;
+}
+
+.transparent-card .ant-card-head {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(217, 217, 217, 0.3) !important;
+}

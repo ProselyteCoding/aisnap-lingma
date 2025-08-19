@@ -8,17 +8,12 @@ import {
   Space, 
   Typography, 
   Card, 
-  message, 
-  Spin, 
-  Divider,
-  Alert
+  App
 } from 'antd';
 import { 
-  UploadOutlined, 
   FileTextOutlined, 
   ArrowLeftOutlined,
-  CopyOutlined,
-  DownloadOutlined
+  CopyOutlined
 } from '@ant-design/icons';
 import { useStore } from '@/stores/useStore';
 
@@ -27,6 +22,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 export default function TextConversion() {
+  const { message } = App.useApp();
   const [inputText, setInputText] = useState('');
   const [inputType, setInputType] = useState<'markdown' | 'html' | 'latex'>('markdown');
   const [outputType, setOutputType] = useState<'docx' | 'html' | 'latex' | 'pdf' | 'plain'>('docx');
@@ -113,7 +109,12 @@ export default function TextConversion() {
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/">
-            <Button icon={<ArrowLeftOutlined />}>返回主页</Button>
+            <Button 
+              icon={<ArrowLeftOutlined />}
+              className="back-button"
+            >
+              返回主页
+            </Button>
           </Link>
           <Title level={2} style={{ margin: 0, flex: 1, textAlign: 'center' }}>
             文本格式转换

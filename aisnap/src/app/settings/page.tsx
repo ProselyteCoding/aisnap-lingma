@@ -5,13 +5,13 @@ import {
   Form, 
   Input, 
   Button, 
-  message, 
   Card, 
   Space, 
   Typography,
   Modal,
   Upload,
-  Avatar
+  Avatar,
+  App
 } from 'antd';
 import { 
   UserOutlined, 
@@ -41,6 +41,7 @@ interface UpdatePasswordFormValues {
 
 export default function SettingsPage() {
   const { data: session, status, update } = useSession();
+  const { message } = App.useApp();
   const router = useRouter();
   const [form] = Form.useForm();
   const [updateNicknameForm] = Form.useForm();
@@ -187,18 +188,14 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <UserNavbar />
+      <UserNavbar pageName="用户设置" />
       <div style={{ 
         padding: "40px 20px", 
         maxWidth: "800px", 
         margin: "0 auto", 
         marginTop: 64 
       }}>
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          <Title level={2} style={{ textAlign: "center", marginBottom: "30px" }}>
-            用户设置
-          </Title>
-          
+        <Space direction="vertical" size="large" style={{ width: "100%" }}>          
           <Card>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
               {/* 头像设置 */}
