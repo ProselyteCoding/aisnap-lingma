@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import "./globals.scss";
 import AntDesignProviders from "./providers";
+import GlobalBackground from "./components/GlobalBackground";
 
 export const metadata: Metadata = {
   title: "AISnap - 智能文档格式转换平台",
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
         <AntDesignProviders>
+          <GlobalBackground />
           {children}
         </AntDesignProviders>
       </body>

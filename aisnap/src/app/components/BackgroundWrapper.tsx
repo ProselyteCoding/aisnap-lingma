@@ -20,9 +20,12 @@ export default function BackgroundWrapper({ children }: BackgroundWrapperProps) 
           
           if (result.success && result.data?.background) {
             setBackgroundImage(result.data.background);
+          } else {
+            setBackgroundImage(null);
           }
         } catch (error) {
           console.error('获取用户背景失败:', error);
+          setBackgroundImage(null);
         }
       } else {
         // 用户未登录时清除背景
@@ -35,23 +38,24 @@ export default function BackgroundWrapper({ children }: BackgroundWrapperProps) 
 
   return (
     <div className="app-container">
-      {/* 背景层 */}
+      {/* 背景层 - 使用img标签代替background样式 */}
       {backgroundImage && (
-        <div 
-          className="background-layer"
+        <img 
+          src={backgroundImage}
+          alt="用户背景"
+          className="background-layer-image"
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            opacity: 0.3, // 设置透明度，不影响正常功能
-            zIndex: -1, // 确保在最底层
-            pointerEvents: 'none', // 不响应鼠标事件
+            objectFit: 'cover',
+            objectPosition: 'center',
+            opacity: 0.3,
+            zIndex: -1,
+            pointerEvents: 'none',
+            userSelect: 'none',
           }}
         />
       )}

@@ -24,7 +24,9 @@ import {
   LockOutlined,
   EditOutlined,
   BgColorsOutlined,
-  InboxOutlined
+  InboxOutlined,
+  SunOutlined,
+  MoonOutlined
 } from '@ant-design/icons';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -74,6 +76,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
   const { message } = App.useApp();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [isUpdateAvatarModalVisible, setIsUpdateAvatarModalVisible] = useState(false);
   const [isUpdateNicknameModalVisible, setIsUpdateNicknameModalVisible] = useState(false);
@@ -100,6 +103,44 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
   const [previewBackground, setPreviewBackground] = useState<string | null>(null);
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // 添加主题状态
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+
+  // 主题切换函数
+  const toggleTheme = useCallback(() => {
+    setIsDarkTheme(prev => {
+      const newTheme = !prev;
+      // 将主题状态保存到localStorage
+      localStorage.setItem('isDarkTheme', JSON.stringify(newTheme));
+      // 切换html和body的类名
+      if (newTheme) {
+        document.documentElement.classList.add('dark-theme');
+        document.body.classList.add('dark-theme');
+      } else {
+        document.documentElement.classList.remove('dark-theme');
+        document.body.classList.remove('dark-theme');
+      }
+      return newTheme;
+    });
+  }, []);
+
+  // 初始化主题
+  useEffect(() => {
+    // 从localStorage读取主题设置
+    const savedTheme = localStorage.getItem('isDarkTheme');
+    if (savedTheme) {
+      const isDark = JSON.parse(savedTheme);
+      setIsDarkTheme(isDark);
+      if (isDark) {
+        document.documentElement.classList.add('dark-theme');
+        document.body.classList.add('dark-theme');
+      } else {
+        document.documentElement.classList.remove('dark-theme');
+        document.body.classList.remove('dark-theme');
+      }
+    }
+  }, []);
 
   // 获取用户信息的函数
   const fetchUserInfo = useCallback(async () => {
@@ -134,10 +175,6 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
     // 不在选择文件时自动打开预览模态框
   };
 
-  // 调试previewImage状态变化
-  useEffect(() => {
-    console.log('previewImage状态变化:', previewImage);
-  }, [previewImage]);
 
   // 在会话状态改变时获取用户信息
   useEffect(() => {
@@ -403,7 +440,6 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
         message.success('背景已重置！');
         setCurrentBackground(null);
         setPreviewBackground(null);
-        setSelectedFile(null);
         setIsUpdateBackgroundModalVisible(false);
         // 重新获取用户信息
         await fetchUserInfo();
@@ -422,10 +458,10 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
 
   // 处理背景预览
   const handleBackgroundPreview = (file: File) => {
+    setSelectedFile(file); // 保存文件引用
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreviewBackground(e.target?.result as string);
-      setSelectedFile(file); // 存储文件引用
     };
     reader.readAsDataURL(file);
   };
@@ -437,21 +473,21 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
       left: 0, 
       right: 0, 
       height: 64, 
-      backgroundColor: 'rgba(242, 244, 247, 0.95)',
+      backgroundColor: 'var(--card-background)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      borderBottom: '1px solid rgba(200, 205, 212, 0.6)',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+      boxShadow: '0 2px 8px var(--shadow-color)',
       zIndex: 1000,
       display: 'flex',
       alignItems: 'center',
-      padding: '0 24px'
-    }}>
+      padding: '0 24px',
+      transition: 'background-color 0.3s, box-shadow 0.3s'
+    }} className="navbar">
       {/* 左侧项目名 */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
           <Image 
-            src="/logo.svg" 
+            src="/logo.png" 
             alt="AISnap Logo" 
             width={32} 
             height={32} 
@@ -460,7 +496,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
           <Text style={{ 
             fontSize: '26px', 
             fontWeight: 700, 
-            color: '#1890ff', 
+            color: 'var(--primary-color)', 
             margin: 0,
             fontFamily: '"Helvetica Neue", "Arial", "Segoe UI", "Roboto", sans-serif',
             letterSpacing: '1px',
@@ -474,15 +510,15 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
             <div style={{ 
               width: '1px', 
               height: '16px', 
-              backgroundColor: '#d9d9d9', 
+              backgroundColor: 'var(--divider-color)', 
               margin: '0 42px 0 42px' 
             }} />
             <Text style={{ 
-              color: '#595959', 
+              color: 'var(--secondary-text)', 
               fontSize: '16px', 
               fontWeight: 500,
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-            }}>
+            }} className="page-title">
               {pageName}
             </Text>
           </>
@@ -495,6 +531,12 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
           <Avatar icon={<UserOutlined />} />
         ) : session?.user ? (
           <Space size="middle">
+            <Button 
+              type="text" 
+              icon={isDarkTheme ? <SunOutlined /> : <MoonOutlined />}
+              onClick={toggleTheme}
+              className="theme-toggle-button"
+            />
             <Avatar 
               src={userInfo.avatar?.trim() ? userInfo.avatar : undefined} 
               icon={!userInfo.avatar?.trim() ? <UserOutlined /> : undefined} 
@@ -510,7 +552,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
                 objectFit: 'cover'
               }}
             />
-            <Text strong>{userInfo.nickname || '用户'}</Text>
+            <Text strong className="user-info-text">{userInfo.nickname || '用户'}</Text>
             <Button 
               type="text" 
               icon={<SettingOutlined />} 
@@ -519,6 +561,12 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
           </Space>
         ) : (
           <Space>
+            <Button 
+              type="text" 
+              icon={isDarkTheme ? <SunOutlined /> : <MoonOutlined />}
+              onClick={toggleTheme}
+              className="theme-toggle-button"
+            />
             <Text type="secondary">立即注册/登录</Text>
             <Button 
               type="primary" 
@@ -924,7 +972,6 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
         onCancel={() => {
           setIsUpdateBackgroundModalVisible(false);
           setPreviewBackground(null);
-          setSelectedFile(null);
         }}
         footer={null}
         width={600}
@@ -1005,7 +1052,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
                 style={{ marginBottom: 16 }}
               >
                 <p className="ant-upload-drag-icon">
-                  <InboxOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                  <InboxOutlined style={{ fontSize: 48, color: 'var(--primary-color)' }} />
                 </p>
                 <p className="ant-upload-text">点击或拖拽图片到此区域上传</p>
                 <p className="ant-upload-hint">
@@ -1075,13 +1122,14 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
             <div style={{ 
               marginTop: 24, 
               padding: 16, 
-              background: '#f6f6f6', 
+              background: 'var(--hover-background)', 
               borderRadius: 8,
               fontSize: 12,
-              color: '#666'
-            }}>
-              <p style={{ margin: 0, marginBottom: 8 }}><strong>使用说明：</strong></p>
-              <p style={{ margin: 0 }}>• 背景图片会以30%透明度显示在整个应用底层</p>
+              color: 'var(--secondary-text)',
+              border: '1px solid var(--border-color)'
+            }} className="background-usage-info">
+              <p style={{ margin: 0, marginBottom: 8, color: 'var(--text-color)' }}><strong>使用说明：</strong></p>
+              <p style={{ margin: 0 }}>• 背景图片会以30%透明度显示在整个应用底层，不会影响主题切换</p>
               <p style={{ margin: 0 }}>• 推荐上传高分辨率图片以获得最佳显示效果</p>
               <p style={{ margin: 0 }}>• 可以随时重置背景或重新选择图片</p>
             </div>

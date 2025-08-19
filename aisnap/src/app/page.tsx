@@ -10,13 +10,23 @@ const { Title, Paragraph } = Typography;
 
 export default function Home() {
   return (
-    <div>
+    <div style={{ minHeight: "100vh", maxHeight: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <UserNavbar />
-      <div style={{ padding: "40px 20px", maxWidth: "1200px", margin: "0 auto", marginTop: 64 }}>
+      <div style={{ 
+        padding: "40px 20px 20px 20px", 
+        maxWidth: "1200px", 
+        margin: "0 auto", 
+        marginTop: 64, 
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        overflow: "auto"
+      }}>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <div style={{ textAlign: "center", marginBottom: "10px" }}>
             <Image 
-              src="/logo.svg" 
+              src="/logo.png" 
               alt="AISnap Logo" 
               width={64} 
               height={64} 
@@ -45,14 +55,15 @@ export default function Home() {
             </Link>
           </div>
           
-          <div style={{ 
-            marginTop: "60px", 
-            padding: "30px", 
-            backgroundColor: "#f0f2f5", 
-            borderRadius: "8px",
-            textAlign: "center",
-            border: "1px solid #d9d9d9"
-          }}>
+          <div 
+            className="homepage-format-section"
+            style={{ 
+              marginTop: "80px", 
+              padding: "30px", 
+              borderRadius: "8px",
+              textAlign: "center",
+            }}
+          >
             <Title level={3}>支持的输出格式</Title>
             <Paragraph>预设模板图片、DOCX/HTML/LaTeX/PDF文件、纯文本提取</Paragraph>
           </div>

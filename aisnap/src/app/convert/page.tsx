@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -36,6 +36,7 @@ import {
   FileImageOutlined
 } from '@ant-design/icons';
 import type { UploadProps, UploadFile, TabsProps } from 'antd';
+import { useSession } from 'next-auth/react';
 import UserNavbar from '../components/UserNavbar';
 
 const { Text } = Typography;
@@ -55,6 +56,7 @@ interface ImageSettings {
 }
 
 export default function ConvertPage() {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('text');
   const [inputTextValue, setInputTextValue] = useState('');
   const [fileValue, setFileValue] = useState<File | null>(null);
@@ -65,9 +67,9 @@ export default function ConvertPage() {
   const [convertedText, setConvertedText] = useState<string | null>(null);
   const [filePreviewContent, setFilePreviewContent] = useState<string | null>(null);
   const [prompt, setPrompt] = useState(''); // 用户输入的提示词
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [userInfo, setUserInfo] = useState<{avatar?: string}>({});
   const previewRef = useRef<HTMLDivElement>(null);
-  
-  // 图片模板设置状态
   const [imageSettings, setImageSettings] = useState<ImageSettings>({
     fontSize: 14,
     fontFamily: 'Arial',
@@ -78,6 +80,48 @@ export default function ConvertPage() {
     padding: 20,
     contentFormat: 'markdown' // 默认为markdown（输出2）
   });
+
+  // 监听主题变化
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsDarkTheme(document.documentElement.classList.contains('dark-theme'));
+    };
+    
+    // 初始检查
+    checkTheme();
+    
+    // 监听主题切换
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // 获取用户信息
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (session?.user?.email) {
+        try {
+          const response = await fetch('/api/user');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setUserInfo({
+                avatar: (data.data.avatar && data.data.avatar.trim()) ? data.data.avatar : undefined,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('获取用户信息失败:', error);
+        }
+      }
+    };
+
+    fetchUserInfo();
+  }, [session]);
 
   // 生成并上传图片到服务器
   const generateAndUploadImage = async (expectedPath: string) => {
@@ -565,11 +609,11 @@ export default function ConvertPage() {
     return (
       <div 
         ref={previewRef}
+        className="image-screenshot-area"
         style={{ 
           width: imageSettings.width,
           padding: imageSettings.padding,
           backgroundColor: imageSettings.backgroundColor,
-          color: imageSettings.textColor,
           fontFamily: imageSettings.fontFamily,
           fontSize: imageSettings.fontSize,
           borderRadius: '8px',
@@ -587,18 +631,24 @@ export default function ConvertPage() {
             gap: '10px',
             marginLeft: '60px' // 与左侧保持距离
           }}>
-            <div style={{
-              backgroundColor: '#e6f7ff',
-              padding: '12px 16px',
-              borderRadius: '18px 18px 4px 18px',
-              maxWidth: '80%', // 最大宽度限制
-              width: 'fit-content', // 根据内容调整宽度
-              color: '#1a1a1a',
-              textAlign: 'left',
-              wordBreak: 'break-word',
-              lineHeight: '1.6',
-              whiteSpace: 'pre-wrap' // 支持换行符显示
-            }}>
+            <div 
+              className="share-bubble" 
+              ref={(el) => {
+                if (el) {
+                  el.style.setProperty('color', imageSettings.textColor, 'important');
+                }
+              }}
+              style={{
+                backgroundColor: '#e6f7ff',
+                padding: '12px 16px',
+                borderRadius: '18px 18px 4px 18px',
+                maxWidth: '80%', // 最大宽度限制
+                width: 'fit-content', // 根据内容调整宽度
+                textAlign: 'left',
+                wordBreak: 'break-word',
+                lineHeight: '1.6',
+                whiteSpace: 'pre-wrap' // 支持换行符显示
+              }}>
               {prompt}
             </div>
             {/* 用户头像占位符 */}
@@ -611,9 +661,24 @@ export default function ConvertPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <UserOutlined style={{ color: '#1677ff', fontSize: '18px' }} />
+              {userInfo.avatar?.trim() ? (
+                <Image 
+                  src={userInfo.avatar} 
+                  alt="用户头像"
+                  width={30}
+                  height={30}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+              ) : (
+                <UserOutlined style={{ color: '#1677ff', fontSize: '18px' }} />
+              )}
             </div>
           </div>
         )}
@@ -650,14 +715,20 @@ export default function ConvertPage() {
             )}
           </div>
           
-          <div style={{
-            backgroundColor: themeConfig.bubbleColor,
-            padding: '12px 16px',
-            borderRadius: '4px 18px 18px 18px',
-            maxWidth: '80%', // 最大宽度限制
-            width: 'fit-content', // 根据内容调整宽度
-            color: themeConfig.textColor
-          }}>
+          <div 
+            className="ai-bubble" 
+            ref={(el) => {
+              if (el) {
+                el.style.setProperty('color', imageSettings.textColor, 'important');
+              }
+            }}
+            style={{
+              backgroundColor: themeConfig.bubbleColor,
+              padding: '12px 16px',
+              borderRadius: '4px 18px 18px 18px',
+              maxWidth: '80%', // 最大宽度限制
+              width: 'fit-content' // 根据内容调整宽度
+            }}>
             <div style={{ 
               whiteSpace: 'pre-wrap',
               lineHeight: '1.6',
@@ -731,6 +802,7 @@ export default function ConvertPage() {
                   value={imageSettings.fontSize}
                   onChange={(value) => updateImageSettings('fontSize', value)}
                   style={{ width: 'calc(100% - 50px)', marginRight: 8 }}
+                  tooltip={{ open: false }}
                 />
                 <Text code>{imageSettings.fontSize}px</Text>
               </div>
@@ -743,7 +815,11 @@ export default function ConvertPage() {
                   value={imageSettings.backgroundColor}
                   onChange={(value) => updateImageSettings('backgroundColor', value.toHexString())}
                   showText
-                  style={{ width: '100%' }}
+                  style={{ 
+                    width: '100%',
+                    backgroundColor: isDarkTheme ? '#232323' : '#fff',
+                    borderColor: isDarkTheme ? '#444' : '#e0e0e0'
+                  }}
                 />
               </div>
             </div>
@@ -760,7 +836,11 @@ export default function ConvertPage() {
                   value={imageSettings.textColor}
                   onChange={(value) => updateImageSettings('textColor', value.toHexString())}
                   showText
-                  style={{ width: '100%' }}
+                  style={{ 
+                    width: '100%',
+                    backgroundColor: isDarkTheme ? '#232323' : '#fff',
+                    borderColor: isDarkTheme ? '#444' : '#e0e0e0'
+                  }}
                 />
               </div>
             </div>
@@ -797,6 +877,7 @@ export default function ConvertPage() {
                   value={imageSettings.width}
                   onChange={(value) => updateImageSettings('width', value)}
                   style={{ width: 'calc(100% - 60px)', marginRight: 8 }}
+                  tooltip={{ open: false }}
                 />
                 <Text code>{imageSettings.width}px</Text>
               </div>
@@ -1071,17 +1152,10 @@ export default function ConvertPage() {
                       {/* 图片输出预览 */}
                       {outputTypeValue === 'image' && convertedText ? (
                         <div>
-                          <div style={{ 
-                            fontSize: '12px', 
-                            color: '#666', 
-                            marginBottom: '8px',
-                            padding: '8px 12px',
-                            backgroundColor: '#f5f5f5',
-                            borderRadius: '4px'
-                          }}>
+                          <div className="preview-hint-box">
                             💡 图片模板预览（可下载或复制到剪贴板）
                           </div>
-                          <div style={{ overflowX: 'auto', textAlign: 'center' }}>
+                          <div className="image-preview-container" style={{ overflowX: 'auto', textAlign: 'center' }}>
                             <div style={{
                               border: '2px dashed #d9d9d9',
                               borderRadius: '8px',
@@ -1097,50 +1171,35 @@ export default function ConvertPage() {
                     /* HTML输出预览 */
                     outputTypeValue === 'html' ? (
                       <div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#666', 
-                          marginBottom: '8px',
-                          padding: '8px 12px',
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: '4px'
-                        }}>
+                        <div className="preview-hint-box">
                           💡 {getPreviewHint('html')}
                         </div>
-                        <div 
-                          ref={previewRef}
-                          style={{ 
-                            minHeight: '200px', 
-                            padding: '20px', 
-                            border: '1px solid #f0f0f0',
-                            backgroundColor: '#fff'
-                          }}
-                          dangerouslySetInnerHTML={{ 
-                            __html: filePreviewContent || convertedText || ''
-                          }}
-                        />
+                        <div ref={previewRef} className="preview-content-box">
+                          <pre style={{
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            padding: 0,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.6',
+                            margin: 0,
+                            fontFamily: 'inherit'
+                          }}>
+                            {filePreviewContent || convertedText || ''}
+                          </pre>
+                        </div>
                       </div>
                     ) : 
                     /* LaTeX和纯文本输出预览 */
                     (outputTypeValue === 'latex' || outputTypeValue === 'plain') ? (
                       <div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#666', 
-                          marginBottom: '8px',
-                          padding: '8px 12px',
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: '4px'
-                        }}>
+                        <div className="preview-hint-box">
                           💡 {getPreviewHint(outputTypeValue)}
                         </div>
                         <div 
                           ref={previewRef}
+                          className="preview-content-box"
                           style={{ 
-                            minHeight: '200px', 
-                            padding: '20px', 
-                            border: '1px solid #f0f0f0',
-                            backgroundColor: '#fff',
                             fontFamily: outputTypeValue === 'latex' ? 'monospace' : 'inherit',
                             fontSize: outputTypeValue === 'latex' ? '14px' : 'inherit'
                           }}
@@ -1160,25 +1219,13 @@ export default function ConvertPage() {
                     /* DOCX输出预览 */
                     outputTypeValue === 'docx' ? (
                       <div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#666', 
-                          marginBottom: '8px',
-                          padding: '8px 12px',
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: '4px'
-                        }}>
+                        <div className="preview-hint-box">
                           💡 {getPreviewHint('docx')}
                         </div>
                         {filePreviewContent ? (
                           <div 
                             ref={previewRef}
-                            style={{ 
-                              minHeight: '200px', 
-                              padding: '20px', 
-                              border: '1px solid #f0f0f0',
-                              backgroundColor: '#fff'
-                            }}
+                            className="preview-content-box"
                           >
                             <pre style={{ 
                               whiteSpace: 'pre-wrap',
@@ -1196,7 +1243,7 @@ export default function ConvertPage() {
                             padding: '60px 20px',
                             color: '#666'
                           }}>
-                            <FileTextOutlined style={{ fontSize: '48px', marginBottom: '16px', display: 'block', color: '#1890ff' }} />
+                            <FileTextOutlined style={{ fontSize: '48px', marginBottom: '16px', display: 'block', color: 'var(--primary-color)' }} />
                             <p>文件已生成完成</p>
                             <p style={{ fontSize: '14px', color: '#999' }}>
                               正在获取文件内容预览...
@@ -1208,25 +1255,13 @@ export default function ConvertPage() {
                     /* PDF输出预览 */
                     outputTypeValue === 'pdf' ? (
                       <div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#666', 
-                          marginBottom: '8px',
-                          padding: '8px 12px',
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: '4px'
-                        }}>
+                        <div className="preview-hint-box">
                           💡 {getPreviewHint('pdf')}
                         </div>
                         {filePreviewContent ? (
                           <div 
                             ref={previewRef}
-                            style={{ 
-                              minHeight: '200px', 
-                              padding: '20px', 
-                              border: '1px solid #f0f0f0',
-                              backgroundColor: '#fff'
-                            }}
+                            className="preview-content-box"
                           >
                             <pre style={{ 
                               whiteSpace: 'pre-wrap',
@@ -1239,25 +1274,17 @@ export default function ConvertPage() {
                             </pre>
                           </div>
                         ) : (
-                          <div style={{ 
-                            textAlign: 'center', 
-                            padding: '60px 20px',
-                            color: '#666'
-                          }}>
-                            <FileTextOutlined style={{ fontSize: '48px', marginBottom: '16px', display: 'block', color: '#1890ff' }} />
+                          <div className="file-complete-hint">
+                            <FileTextOutlined style={{ fontSize: '48px', marginBottom: '16px', display: 'block', color: 'var(--primary-color)' }} />
                             <p>文件已生成完成</p>
-                            <p style={{ fontSize: '14px', color: '#999' }}>
+                            <p className="subtitle">
                               PDF文件无法在线预览，请下载查看
                             </p>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div style={{ 
-                        textAlign: 'center', 
-                        padding: '40px 20px',
-                        color: '#666'
-                      }}>
+                      <div className="conversion-complete-hint">
                         <p>转换完成</p>
                       </div>
                     )}
@@ -1267,17 +1294,7 @@ export default function ConvertPage() {
               
               {/* 图片输出时在预览框底部显示提示 */}
               {outputTypeValue === 'image' && convertedText && (
-                <div style={{
-                  marginTop: 'auto',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  color: '#595959',
-                  fontWeight: 500,
-                  textAlign: 'center',
-                  backgroundColor: '#f0f2f5',
-                  borderRadius: '6px',
-                  border: '1px solid #d9d9d9'
-                }}>
+                <div className="image-output-hint">
                   📸 虚线区域内容将生成为图片
                 </div>
               )}
