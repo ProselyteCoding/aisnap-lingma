@@ -2,7 +2,7 @@
 
 # AISnap AI快照
 
-AISnap，AI快照，
+AISnap——AI快照,智能格式转换平台、便捷分享工具
 
 <!-- PROJECT SHIELDS -->
 
@@ -21,21 +21,8 @@ AISnap，AI快照，
     <img src="./assets/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">AISnap</h3>
-  <p align="center">
-    
-    <br />
-    <a href="https://github.com/ProselyteCoding/aisnap-lingma"><strong>探索本项目的文档 »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/ProselyteCoding/aisnap-lingma">查看Demo</a>
-    ·
-    <a href="https://github.com/ProselyteCoding/aisnap-lingma/issues">报告Bug</a>
-    ·
-    <a href="https://github.com/ProselyteCoding/aisnap-lingma/issues">提出新特性</a>
-  </p>
-
-</p>
+  <h3 align="center">AISnap——AI快照,智能格式转换平台、便捷分享工具</h3>
+<p align="center">
  
 ## 目录
 
