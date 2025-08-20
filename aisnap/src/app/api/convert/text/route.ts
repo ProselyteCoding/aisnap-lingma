@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { processConversion } from '@/lib/conversion';
 
 // 定义输出类型

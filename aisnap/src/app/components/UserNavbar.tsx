@@ -76,7 +76,6 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
   const { message } = App.useApp();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [isUpdateAvatarModalVisible, setIsUpdateAvatarModalVisible] = useState(false);
   const [isUpdateNicknameModalVisible, setIsUpdateNicknameModalVisible] = useState(false);
@@ -211,7 +210,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
         setIsLoginModalVisible(false);
         loginForm.resetFields();
       }
-    } catch (_error) {
+    } catch {
       message.error('登录过程中发生错误');
     }
   };
@@ -242,7 +241,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
       } else {
         message.error(result.message);
       }
-    } catch (_error) {
+    } catch {
       message.error('注册过程中发生错误，请稍后重试');
     }
   };
@@ -251,7 +250,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
     try {
       await signOut({ redirect: false });
       message.success('已退出登录');
-    } catch (_error) {
+    } catch {
       message.error('退出登录时发生错误');
     }
   };
@@ -352,7 +351,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
       } else {
         message.error(result.message);
       }
-    } catch (_error) {
+    } catch {
       message.error('昵称更新失败');
     }
   };
@@ -381,7 +380,7 @@ const UserNavbar: React.FC<UserNavbarProps> = ({ pageName }) => {
       } else {
         message.error(result.message);
       }
-    } catch (_error) {
+    } catch {
       message.error('密码更新失败');
     }
   };

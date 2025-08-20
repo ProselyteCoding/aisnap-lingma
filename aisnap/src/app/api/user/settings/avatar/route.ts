@@ -1,10 +1,9 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { PrismaClient } from "../../../../../generated/prisma";
+import { authOptions } from "@/lib/auth";
+import { PrismaClient } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
-import { stat, mkdirSync } from "fs";
 
 const prisma = new PrismaClient();
 
@@ -28,7 +27,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const avatarFile: any = formData.get('avatar');
+    const avatarFile = formData.get('avatar') as File;
 
     // 验证文件
     if (!avatarFile || !(avatarFile instanceof Blob)) {
@@ -82,7 +81,7 @@ export async function PUT(request: NextRequest) {
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'avatars');
     try {
       await mkdir(uploadDir, { recursive: true });
-    } catch (error) {
+    } catch {
       // 目录可能已存在
     }
 

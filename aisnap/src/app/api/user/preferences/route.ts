@@ -1,167 +1,63 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
-import { PrismaClient } from "../../../../generated/prisma";
-import { NextRequest } from "next/server";
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-const prisma = new PrismaClient();
-
-// 定义偏好设置类型
-interface PreferenceRequestBody {
-  font: string;
-  fontSize: string;
-  style: string;
-  watermark: string;
-  aiLogo: string;
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "未授权访问" 
-        }),
-        { 
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, message: '未登录' },
+        { status: 401 }
       );
     }
 
-    // 获取用户偏好设置
-    const preference = await prisma.preference.findUnique({
-      where: {
-        userId: session.user.id as string
-      }
+    // 偏好设置功能已弃用，返回默认值
+    const defaultPreferences = {
+      font: "Microsoft YaHei",
+      fontSize: "medium",
+      style: "simple",
+      watermark: "none",
+      aiLogo: "tongyi"
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: defaultPreferences
     });
 
-    // 如果用户没有偏好设置，创建默认设置
-    if (!preference) {
-      const defaultPreference = await prisma.preference.create({
-        data: {
-          userId: session.user.id as string
-        }
-      });
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: defaultPreference 
-        }),
-        { 
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        data: preference 
-      }),
-      { 
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
   } catch (error) {
-    console.error("获取用户偏好设置错误:", error);
-    
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: "获取用户偏好设置时发生错误" 
-      }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+    console.error('获取偏好设置失败:', error);
+    return NextResponse.json(
+      { success: false, message: '获取偏好设置失败' },
+      { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT() {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "未授权访问" 
-        }),
-        { 
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, message: '未登录' },
+        { status: 401 }
       );
     }
 
-    const { font, fontSize, style, watermark, aiLogo }: PreferenceRequestBody = await request.json();
-
-    // 更新或创建用户偏好设置
-    const preference = await prisma.preference.upsert({
-      where: {
-        userId: session.user.id as string
-      },
-      update: {
-        font,
-        fontSize,
-        style,
-        watermark,
-        aiLogo
-      },
-      create: {
-        userId: session.user.id as string,
-        font,
-        fontSize,
-        style,
-        watermark,
-        aiLogo
-      }
+    // 偏好设置功能已弃用，直接返回成功
+    return NextResponse.json({
+      success: true,
+      message: '偏好设置功能已弃用，但操作成功'
     });
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "偏好设置已保存",
-        data: preference
-      }),
-      { 
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
   } catch (error) {
-    console.error("保存用户偏好设置错误:", error);
-    
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: "保存用户偏好设置时发生错误" 
-      }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+    console.error('更新偏好设置失败:', error);
+    return NextResponse.json(
+      { success: false, message: '更新偏好设置失败' },
+      { status: 500 }
     );
   }
 }

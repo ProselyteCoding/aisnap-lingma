@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 
 const prisma = new PrismaClient();
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -24,33 +24,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 从URL查询参数中获取 id
-    const url = new URL(request.url);
-    const id = url.searchParams.get('id');
-
-    if (!id) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "缺少记录ID" 
-        }),
-        { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    }
+    const { id } = await params;
 
     // 检查记录是否属于当前用户
-    const conversion = await prisma.history.findUnique({
+    const history = await prisma.history.findUnique({
       where: {
         id: id
       }
     });
 
-    if (!conversion) {
+    if (!history) {
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -65,7 +48,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (conversion.userId !== session.user.id) {
+    if (history.userId !== session.user.id) {
       return new Response(
         JSON.stringify({ 
           success: false, 

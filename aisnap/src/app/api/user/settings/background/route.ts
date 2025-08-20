@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { PrismaClient } from "../../../../../generated/prisma";
+import { authOptions } from "@/lib/auth";
+import { PrismaClient } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
@@ -154,7 +154,7 @@ export async function PUT(request: NextRequest) {
 }
 
 // DELETE - 删除背景图片
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const session = await getServerSession(authOptions);
 

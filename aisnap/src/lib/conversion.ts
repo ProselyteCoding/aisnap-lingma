@@ -51,7 +51,7 @@ async function saveConversionHistory(
     console.log('保存转换历史记录:', { userId, inputType, outputType });
     
     // 在服务端直接使用Prisma调用数据库，而不是fetch API
-    const { PrismaClient } = await import('../generated/prisma');
+    const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     
     await prisma.history.create({
