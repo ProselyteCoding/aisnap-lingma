@@ -59,7 +59,7 @@ AISnap——AI快照,智能格式转换平台、便捷分享工具
 
 <img src="./assets/CodeSnap效果图.png" alt="CodeSnap效果图">
 
-<center>图1 CodeSnap效果图</center>
+<p align="center">图1 CodeSnap效果图</p>
 
 为此我们也希望开发一款同类的AI内容分享工具 **AISnap(AI快照)**，实现针对于以上痛点场景的便捷的AI内容转换利用与分享。
 
@@ -69,27 +69,27 @@ AISnap——AI快照,智能格式转换平台、便捷分享工具
 
 <img src="./assets/转换流程图.png" alt="转换流程图">
 
-<center>图2 格式转换流程图</center>
+<p align="center">图2 格式转换流程图</p>
 
 图像转换功能是核心功能一个亮点，该功能是指将输入的图片进行识别，再转换成支持的各种输出格式，该技术通过调用通义千问大模型(Qwen-VL)的API接口实现识别功能，实现高准确率、高位置精度(指精准生成对应的空格)的文本识别。
 
 <img src="./assets/测试用例截图.png" alt="测试用例截图">
 
-<center>图3 测试用例截图(使用此图作为测试用例进行下图的识别转换生成)</center>
+<p align="center">图3 测试用例截图(使用此图作为测试用例进行下图的识别转换生成)</p>
 
 <img src="./assets/图片转换.png" alt="图片转换">
 
-<center>图4 图片转换图</center>
+<p align="center">图4 图片转换图</p>
 
 为了达到CodeSnap中生成图片的效果，我们使用HTML2Canvas实现了截图功能，预设了一组精美的模板，即允许用户体现AI身份也可以添加用户prompt，是使语境更完备，一键下载与复制真正实现了如CodeSnap中的快捷分享。
 
 <img src="./assets/模板图片生成.png" alt="模板图片生成">
 
-<center>图5 模板图片生成图</center>
+<p align="center">图5 模板图片生成图</p>
 
 <img src="./assets/生成的模板图片.png" alt="生成的模板图片">
 
-<center>图6 生成的模板图片</center>
+<p align="center">图6 生成的模板图片</p>
 
 ---
 
@@ -97,21 +97,21 @@ AISnap——AI快照,智能格式转换平台、便捷分享工具
 
 <img src="./assets/用户权限图.png" alt="用户权限图">
 
-<center>图7 用户权限图</center>
+<p align="center">图7 用户权限图</p>
 
 <img src="./assets/亮色主题背景适配.png" alt="个性化设置">
 
-<center>图8 个性化设置演示图</center>
+<p align="center">图8 个性化设置演示图</p>
 
 <img src="./assets/转换历史.png" alt="转换历史">
 
-<center>图9 转换历史演示图</center>
+<p align="center">图9 转换历史演示图</p>
 
 为了有更良好的用户浏览体验，我们还设计并适配了暗色主题，用户可以从导航栏中一键切换。
 
 <img src="./assets/暗色主题背景适配.png" alt="暗色主题">
 
-<center>图10 暗色主题演示图</center>
+<p align="center">图10 暗色主题演示图</p>
 
 ### 项目原理
 
@@ -134,7 +134,7 @@ AISnap——AI快照,智能格式转换平台、便捷分享工具
 
 通过IP地址 http://47.94.198.49/ 或域名 https://www.lianliestation.xin/ 访问。
 
-若无法访问请及时联系或尝试下面的本地运行。
+若无法访问或有功能无法使用(已经开发完备，所有功能测试后均可正常使用)请及时联系或尝试下面的本地运行。当前网站访问不稳定，且此网站为个人站将来可能替换内容，**优先建议您本地运行项目**。
 
 ### 本地运行
 
