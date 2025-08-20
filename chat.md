@@ -21,3 +21,33 @@
 让我开始第一阶段：项目初始化与基础架构的开发。
 
 首先，我需要创建Next.js项目基础架构。让我检查当前目录结构，然后开始创建项目文件。
+
+```cmd
+npx create-next-app@latest aisnap --typescript --use-npm --eslint --tailwind --src-dir --app --import-alias "@/*"
+```
+
+看起来我已经成功创建了Next.js项目。让我检查一下项目结构并继续配置SCSS和Ant Design。
+
+查看src目录结构
+
+查看app目录结构
+
+已查看目录
+aisnap/src/app
+现在我需要配置SCSS和Ant Design。首先，让我安装必要的依赖项：
+
+终端已运行
+cd aisnap && npm install sass antd @ant-design/icons
+进入aisnap目录
+
+终端已运行
+cd aisnap
+安装SCSS和Ant Design相关依赖
+
+终端已运行
+npm install sass antd @ant-design/icons
+很好，现在我已经安装了SCSS和Ant Design依赖。接下来我需要配置Ant Design和SCSS模块化。让我先创建SCSS样式文件和配置Ant Design。
+
+更新layout.tsx以使用SCSS样式
+
+---
